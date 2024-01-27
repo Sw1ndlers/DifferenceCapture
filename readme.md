@@ -1,5 +1,3 @@
-
-https://github.com/Sw1ndlers/DifferenceCapture/assets/103692349/4d68e4f2-5d32-44b7-8638-c06821288b69
 # Difference Capture
 
 ## Information
