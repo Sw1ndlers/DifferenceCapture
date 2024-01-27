@@ -9,6 +9,7 @@ pub struct CalculationMethod {
         previous_color: &Color,
     ) -> Color,
     pub only_compare_first: bool,
+    pub name: &'static str,
 }
 
 pub trait CalculationMethodTrait {
@@ -25,6 +26,7 @@ macro_rules! create_method {
                 CalculationMethod {
                     function: $function,
                     only_compare_first: $only_compare_first,
+                    name: stringify!($name),
                 }
             }
         }

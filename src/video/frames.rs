@@ -19,7 +19,21 @@ use opencv::{
 };
 use termion::cursor;
 
+use rayon::prelude::*;
+
 const COLOR_BLACK: Color = Color { r: 0, g: 0, b: 0 };
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+struct Position {
+    x: i32,
+    y: i32,
+}
+
+impl Position {
+    fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
+}
 
 fn get_frame_difference(
     frame_size: &core::Size,
@@ -50,6 +64,7 @@ fn get_frame_difference(
 
     image_difference.image
 }
+
 
 fn convert_frames_to_video(
     output_path: &str,
@@ -89,83 +104,6 @@ fn convert_frames_to_video(
     Ok(())
 }
 
-fn _get_frame_differences(
-    video_frames: Vec<Mat>,
-    threshold: f32,
-    only_compare_first: bool,
-    method: CalculationMethod,
-    frame_skip: usize,
-) -> anyhow::Result<HashMap<i32, Mat>> {
-    let last_frame = &video_frames[0];
-    let frame_size = last_frame.size()?;
-
-    let total_frames = video_frames.len();
-
-    let frame_differences = Arc::new(Mutex::new(HashMap::new()));
-    let counter = Arc::new(Mutex::new(0));
-
-    let mut handles = vec![];
-
-    for (i, next_frame) in video_frames.iter().enumerate() {
-        if (i % frame_skip) != 0 {
-            continue;
-        }
-
-        let mut last_frame = last_frame.clone();
-        let next_frame = next_frame.clone();
-
-        let frame_differences = Arc::clone(&frame_differences);
-        let counter = Arc::clone(&counter);
-
-        if !only_compare_first {
-            last_frame = match i {
-                0 => next_frame.clone(),
-                _ => video_frames[i - 1].clone(),
-            };
-        }
-
-        let handle = thread::spawn(move || {
-            let difference = get_frame_difference(
-                &frame_size,
-                &last_frame,
-                &next_frame,
-                threshold,
-                method,
-            );
-
-            let mut locked_differences = frame_differences.lock().unwrap();
-            locked_differences.insert(i as i32, difference);
-
-            drop(locked_differences);
-
-            let mut locked_counter = counter.lock().unwrap();
-            *locked_counter += 1;
-
-            print!(
-                "{}{}/{} frames processed\r",
-                cursor::Hide,
-                *locked_counter,
-                total_frames
-            );
-            stdout().flush().unwrap();
-        });
-
-        handles.push(handle);
-    }
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let final_differences = Arc::try_unwrap(frame_differences)
-        .unwrap()
-        .into_inner()
-        .unwrap();
-    Ok(final_differences)
-}
-
-use rayon::prelude::*;
-
 fn get_frame_differences(
     video_frames: Vec<Mat>,
     threshold: f32,
@@ -183,7 +121,7 @@ fn get_frame_differences(
     let completed_counter = Arc::new(Mutex::new(0));
 
     let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(3)
+        .num_threads(30)
         .build()
         .unwrap();
 
@@ -236,6 +174,7 @@ fn get_frame_differences(
 
     Ok(frame_differences)
 }
+
 
 fn test_codec(codec: CodecString) -> anyhow::Result<i32> {
     let codec_result = videoio::VideoWriter::fourcc(codec.0, codec.1, codec.2, codec.3);
