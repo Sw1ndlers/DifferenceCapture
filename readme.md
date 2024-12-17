@@ -2,11 +2,10 @@
 
 ## Information
 
-A rust tool to capture the motion within a video file.  
-Currently no cli is available, but may be added in the future.
+A rust tool that shows motion within a video
 
-Multiple different methods are available, all of them giving different results.  
-There is a option to set a threshold, which will only show the motion above the threshold.
+Multiple methods are available, yielding different results.
+Reducing the treshold can make the output seem less jittery.
 
 ## Examples
 
